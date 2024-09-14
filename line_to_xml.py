@@ -94,3 +94,64 @@ class LineToXml():
         ET.SubElement(family, "born").text = components[1]
 
         return family
+
+    def append_to_person_or_family(self, person: ET.Element, family: ET.Element, info: ET.Element) -> None:
+        """
+        Append an xml element to the person or family element. If family element is not None,
+        the info element is appended to the family element, otherwise it is added to the person element
+
+        :param person: XML element to add info to if family parameter is None
+        :param family: XML element to add info to if it is not None. Then the info is addde to the person element
+        :param info: XML element to add to either person or family
+        :raises Exception: If both person and family is None
+        """
+        if family is not None:
+            family.append(info)
+        elif person is not None:
+            person.append(info)
+        else:
+            raise Exception(f"No person or family to add record {ET.tostring(info)} to")
+
+    def parse(self, input_records: list[str]) -> ET.Element:
+        """
+        Parse records and return an XML-tree containing data from the records
+
+        :param input_records: A list of strings to be parsed and added to the XML tree
+        :raises Exception: If a record cannot be addded of if a record cannot be parsed
+        :returns ET.Element: An XML representation of the input records
+        """
+        people = ET.Element("people")
+        person: ET.Element = None
+        family: ET.Element = None
+
+        for record in input_records:
+            record = record.strip()
+
+            if len(record) == 0:
+                raise Exception("No empty lines accepted")
+
+            type = record[0]
+
+            if type == "A":
+                address = self.parse_address(record)
+                self.append_to_person_or_family(person, family, address)
+
+            elif type == "F":
+                family = self.parse_family(record)
+                if person is None:
+                    raise Exception(f"Unexpected family record {record}. No person to add record to")
+                person.append(family)
+
+            elif type == "P":
+                person = self.parse_person(record)
+                people.append(person)
+                family = None
+
+            elif type == "T":
+                phone = self.parse_phone(record)
+                self.append_to_person_or_family(person, family, phone)
+
+            else:
+                raise Exception(f"Unsupported record type {type}: {record}")
+
+        return people
