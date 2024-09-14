@@ -1,7 +1,7 @@
 # LineToXml
 
 ## How to setup
-Setup a python virtual environment and install requirement
+Setup a python virtual environment and install requirements
 
     python3 -m venv venv
 
@@ -14,3 +14,8 @@ Setup a python virtual environment and install requirement
 
 ## Check code style
     python3 -m flake8
+
+## Run the converter
+The converter can be run from the command line
+
+    python3 main.py example/input.txt [output_file.xml]
