@@ -12,16 +12,19 @@ class LineToXml():
         :return: list with all arguments, except the type
         """
         components = record.strip().split("|")
+        allowed_types = ('A', 'F', 'P', 'T')
 
         if len(components) != num_components + 1:
-            raise Exception(f"{type} need {num_components} arguments")
+            raise Exception(f"A record of type {type} requires {num_components} arguments: {record}")
 
-        allowed_types = ('A', 'F', 'P', 'T')
         if components[0] not in allowed_types:
-            raise Exception(f"Only {allowed_types} is allowed as first argument")
+            raise Exception(f"Only {allowed_types} is allowed as first argument: {record}")
+
+        if type not in allowed_types:
+            raise Exception(f"Unknown type {type}. Only {allowed_types} is allowed")
 
         if components[0] != type:
-            raise Exception(f"{type}-line does not start with '{type}'")
+            raise Exception(f"{type}-line does not start with '{type}': {record}")
 
         return components[1:]
 
