@@ -2,42 +2,49 @@ import xml.etree.cElementTree as ET
 
 
 class LineToXml():
-    def parse_record(self, record: str, type: str, num_components: int) -> list:
+    def parse_record(self, record: str) -> ET.Element:
         """
-        Check that a record is of correct format.
+        Check that a record is of correct format and convert it to an XML-object
 
         :param record: The input string to parse
-        :param type: The type of the record, e.g. 'P'
         :raises Exception: raises exception on errors, e.g. faulty type, num arguments etc.
-        :return: list with all arguments, except the type
+        :return (str, ET.Element) : A tuple with the type as a string in the first field and an XML-object as the second
         """
-        components = record.strip().split("|")
-        allowed_types = ('A', 'F', 'P', 'T')
+        types = {
+            "A": {"num_args": 3, "parser": self.parse_address},
+            "F": {"num_args": 2, "parser": self.parse_family},
+            "P": {"num_args": 2, "parser": self.parse_person},
+            "T": {"num_args": 2, "parser": self.parse_phone}
+        }
 
-        if len(components) != num_components + 1:
-            raise Exception(f"A record of type {type} requires {num_components} arguments: {record}")
+        if len(record) == 0:
+            raise Exception("No empty lines allowed")
 
-        if components[0] not in allowed_types:
-            raise Exception(f"Only {allowed_types} is allowed as first argument: {record}")
+        record = record.strip()
+        arguments = record.split("|")[1:]
+        type = record[0]
 
-        if type not in allowed_types:
-            raise Exception(f"Unknown type {type}. Only {allowed_types} is allowed")
+        num_args = types[type]["num_args"]
+        if len(arguments) != num_args:
+            raise Exception(f"A record of type {type} requires {num_args} arguments: {record}")
 
-        if components[0] != type:
-            raise Exception(f"{type}-line does not start with '{type}': {record}")
+        print(types.keys())
+        print(type)
+        if type not in types.keys():
+            raise Exception(f"Only {types.keys()} is allowed as first argument: {record}")
 
-        return components[1:]
+        element = types[type]["parser"](arguments)
 
-    def parse_person(self, record: str) -> ET.Element:
+        return (type, element)
+
+    def parse_person(self, components: list) -> ET.Element:
         """
         Parse a person record. A record consist of a first name and
         a last name
 
-        :param record: The input string to parse
+        :param record: a list or arguments to create the XML-object from
         :return: ET.Element containing the xml representation
         """
-        components = self.parse_record(record, "P", 2)
-
         person = ET.Element("person")
 
         ET.SubElement(person, "firstname").text = components[0]
@@ -45,16 +52,14 @@ class LineToXml():
 
         return person
 
-    def parse_phone(self, record: str) -> ET.Element:
+    def parse_phone(self, components: list) -> ET.Element:
         """
         Parse a phone record. A record consist of a mobile phone number
         and home phone number
 
-        :param record: The input string to parse
+        :param record: a list or arguments to create the XML-object from
         :return: ET.Element containing the xml representation
         """
-        components = self.parse_record(record, "T", 2)
-
         phone = ET.Element("phone")
 
         ET.SubElement(phone, "mobile").text = components[0]
@@ -62,15 +67,13 @@ class LineToXml():
 
         return phone
 
-    def parse_address(self, record: str) -> ET.Element:
+    def parse_address(self, components: list) -> ET.Element:
         """
         Parse an address record. A record consist of street, city and zip code
 
-        :param record: The input string to parse
+        :param record: a list or arguments to create the XML-object from
         :return: ET.Element containing the xml representation
         """
-        components = self.parse_record(record, "A", 3)
-
         address = ET.Element("address")
 
         ET.SubElement(address, "street").text = components[0]
@@ -79,15 +82,13 @@ class LineToXml():
 
         return address
 
-    def parse_family(self, record: str) -> ET.Element:
+    def parse_family(self, components: list) -> ET.Element:
         """
         Parse a family record. A record consist of name and year of birth
 
-        :param record: The input string to parse
+        :param record: a list or arguments to create the XML-object from
         :return: ET.Element containing the xml representation
         """
-        components = self.parse_record(record, "F", 2)
-
         family = ET.Element("family")
 
         ET.SubElement(family, "name").text = components[0]
@@ -125,31 +126,21 @@ class LineToXml():
         family: ET.Element = None
 
         for record in input_records:
-            record = record.strip()
+            (type, element) = self.parse_record(record)
 
-            if len(record) == 0:
-                raise Exception("No empty lines accepted")
-
-            type = record[0]
-
-            if type == "A":
-                address = self.parse_address(record)
-                self.append_to_person_or_family(person, family, address)
+            if type in ("A", "T"):
+                self.append_to_person_or_family(person, family, element)
 
             elif type == "F":
-                family = self.parse_family(record)
+                family = element
                 if person is None:
                     raise Exception(f"Unexpected family record {record}. No person to add record to")
                 person.append(family)
 
             elif type == "P":
-                person = self.parse_person(record)
+                person = element
                 people.append(person)
                 family = None
-
-            elif type == "T":
-                phone = self.parse_phone(record)
-                self.append_to_person_or_family(person, family, phone)
 
             else:
                 raise Exception(f"Unsupported record type {type}: {record}")

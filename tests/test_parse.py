@@ -12,24 +12,23 @@ def ltx():
 def test_parse_record(ltx: LineToXml):
     # Correct number of arguments
     with pytest.raises(Exception):
-        ltx.parse_record("P|000", "P", 3)
-
-    # Starts with "type"
-    with pytest.raises(Exception):
-        ltx.parse_record("T|000|111", "P", 2)
+        ltx.parse_record("P|000")
 
     # Trims whitespace
-    assert isinstance(ltx.parse_record(" P|000|111 ", "P", 2), list)
+    assert isinstance(ltx.parse_record(" P|000|111 ")[1], ET.Element)
+
+    # Correct type returned
+    assert ltx.parse_record("P|111|222")[0] == "P"
 
     # Allowed type
     with pytest.raises(Exception):
-        ltx.parse_record("G|abc", "G", 1)
+        ltx.parse_record("G|abc")
 
 
 def test_parse_person(ltx: LineToXml):
     input = "P|Carl Gustaf|Bernadotte"
 
-    person = ltx.parse_person(input)
+    person = ltx.parse_person(input.split("|")[1:])
     assert person.tag == "person"
 
     firstname = person.find("firstname")
@@ -43,7 +42,7 @@ def test_parse_person(ltx: LineToXml):
 def test_parse_phone(ltx: LineToXml):
     input = "T|0768-101801|08-101801"
 
-    phone = ltx.parse_phone(input)
+    phone = ltx.parse_phone(input.split("|")[1:])
     assert phone.tag == "phone"
 
     mobile = phone.find("mobile")
@@ -57,7 +56,7 @@ def test_parse_phone(ltx: LineToXml):
 def test_parse_address(ltx: LineToXml):
     input = "A|Drottningholms slott|Stockholm|10001"
 
-    address = ltx.parse_address(input)
+    address = ltx.parse_address(input.split("|")[1:])
     assert address.tag == "address"
 
     street = address.find("street")
@@ -74,7 +73,7 @@ def test_parse_address(ltx: LineToXml):
 def test_parse_family(ltx: LineToXml):
     input = "F|Victoria|1977"
 
-    family = ltx.parse_family(input)
+    family = ltx.parse_family(input.split("|")[1:])
     assert family.tag == "family"
 
     name = family.find("name")
