@@ -11,10 +11,10 @@ class LineToXml():
         :return (str, ET.Element) : A tuple with the type as a string in the first field and an XML-object as the second
         """
         types = {
-            "A": {"num_args": 3, "parser": self.parse_address},
-            "F": {"num_args": 2, "parser": self.parse_family},
-            "P": {"num_args": 2, "parser": self.parse_person},
-            "T": {"num_args": 2, "parser": self.parse_phone}
+            "A": {"num_args": (2, 3), "parser": self.parse_address},
+            "F": {"num_args": (2, ), "parser": self.parse_family},
+            "P": {"num_args": (2, ), "parser": self.parse_person},
+            "T": {"num_args": (2, ), "parser": self.parse_phone}
         }
 
         if len(record) == 0:
@@ -25,11 +25,9 @@ class LineToXml():
         type = record[0]
 
         num_args = types[type]["num_args"]
-        if len(arguments) != num_args:
-            raise Exception(f"A record of type {type} requires {num_args} arguments: {record}")
+        if len(arguments) not in num_args:
+            raise Exception(f"Number of arguments for a '{type}' record is not fullfilled: {record}")
 
-        print(types.keys())
-        print(type)
         if type not in types.keys():
             raise Exception(f"Only {types.keys()} is allowed as first argument: {record}")
 
@@ -78,7 +76,8 @@ class LineToXml():
 
         ET.SubElement(address, "street").text = components[0]
         ET.SubElement(address, "city").text = components[1]
-        ET.SubElement(address, "zip").text = components[2]
+        if len(components) >= 3:
+            ET.SubElement(address, "zip").text = components[2]
 
         return address
 
